@@ -15,6 +15,7 @@ void AGameStartGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
     DOREPLIFETIME(AGameStartGameState, RemainingTime);
     DOREPLIFETIME(AGameStartGameState, bGameStarted);
+    DOREPLIFETIME(AGameStartGameState, Winner);
 }
 
 
@@ -47,6 +48,8 @@ void AGameStartGameState::CheckPlayerCount()
 
 void AGameStartGameState::StartCountdown(int32 InSeconds)
 {
+    bFinished = false;
+
     if (!HasAuthority())
         return;
 
@@ -87,7 +90,7 @@ void AGameStartGameState::TickCountdown()
     {
         GetWorld()->GetTimerManager().ClearTimer(CountdownTimerHandle);
         bGameStarted = true;
-        OnRep_GameStarted(); // 明示呼び出し（サーバー側）
+        Server_GameStarted(); // 明示呼び出し（サーバー側）
 
         // ゲームのカウントタイマーをセット
         RemainingTime = GameCountMax;
@@ -105,7 +108,7 @@ void AGameStartGameState::TickGameCount()
     {
         // ゲーム終了
         GetWorld()->GetTimerManager().ClearTimer(GameCountTimerHandle);
-        OnRep_GameEnd(); // 明示呼び出し（サーバー側）
+        Server_GameEnd(); // 明示呼び出し（サーバー側）
     }
 
     OnRep_RemainingTime(); // 全クライアントに更新を通知
@@ -123,19 +126,39 @@ void AGameStartGameState::OnRep_RemainingTime()
 }
 
 
-void AGameStartGameState::OnRep_GameStarted()
+void AGameStartGameState::Server_GameStarted()
 {
     UKismetSystemLibrary::PrintString(this, TEXT("Game Start!!"), true, true, FColor::Yellow, 6.f, TEXT("None"));
 }
 
 
-void AGameStartGameState::OnRep_GameEnd()
+void AGameStartGameState::Server_GameEnd()
 {
     UKismetSystemLibrary::PrintString(this, TEXT("Game End!!"), true, true, FColor::Yellow, 6.f, TEXT("None"));
 
+    std::vector<int> counts;
+    counts.assign(ALobbyGameMode::MaxPlayers, 0);
+
     for (auto& pair : DominatedTeamMap)
     {
-        FString str = FString::Printf(TEXT("Zone:%s dominate - %d"), *pair.first, pair.second);
-        UKismetSystemLibrary::PrintString(this, str, true, true, FColor::Green, 6.f, TEXT("None"));
+        if (pair.second >= 0) { counts[pair.second]++; }
     }
+
+    // 数えた人数が最大の要素を指すcountsのイテレータを取得
+    auto itMax = std::ranges::max_element(counts);
+
+    // 人数が最大のチームの数が単独で存在している場合だけ true
+    auto isDominant = std::ranges::count(counts, *itMax) == 1;
+
+    if (isDominant) { Winner = counts[0]; }
+    OnRep_GameFinish();
+}
+
+void AGameStartGameState::OnRep_GameFinish()
+{
+    FString str = FString::Printf(TEXT("Winner - %d"), Winner);
+    UKismetSystemLibrary::PrintString(this, str, true, true, FColor::Green, 8.f, TEXT("None"));
+
+    bFinished = true;
+    OnGameFinished.Broadcast(Winner);
 }

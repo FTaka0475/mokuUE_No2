@@ -8,7 +8,7 @@
 #include "GenericPlatform/GenericPlatformHttp.h"
 
 // ユーザー名
-static const FString UserName = TEXT("なまえ");
+static const FString UserName = TEXT("Fuku");
 
 // UE側で一般的に使われる固定名（"GameSession"）
 static const FName SESSION_NAME = NAME_GameSession;
@@ -97,21 +97,18 @@ void USessionSubsystem::OnCreateComplete(FName, bool bOk)
     if (!bOk) { ClearDelegates(); return; }
 
     const FString CurrentMap = GetWorld()->GetOutermost()->GetName(); // "/Game/Maps/Lobby" など
+    if (IOnlineSubsystem* os = IOnlineSubsystem::Get())
+    {
+        if (IOnlineSessionPtr sess = os->GetSessionInterface())
+        {
+            // セッション開始（内部状態を「スタート」に）
+            sess->StartSession(NAME_GameSession);
+            UKismetSystemLibrary::PrintString(this, "OnCreateComplete: Success!!",
+                true, true, FColor::Cyan, 4.f, TEXT("None"));
+        }
+    }
     UGameplayStatics::OpenLevel(GetWorld(), FName(*CurrentMap), true, TEXT("?listen"));
 
-    // 1フレーム/数百ms遅らせてから StartSession（NetDriver がポート確定後）
-    FTimerHandle Th;
-    GetWorld()->GetTimerManager().SetTimer(Th, [this]()
-        {
-            if (IOnlineSubsystem* OSS = IOnlineSubsystem::Get())
-                if (IOnlineSessionPtr Session = OSS->GetSessionInterface())
-                {
-                    // セッション開始（内部状態を「スタート」に）
-                    Session->StartSession(NAME_GameSession);
-                    UKismetSystemLibrary::PrintString(this, "OnCreateComplete: Success!!",
-                        true, true, FColor::Cyan, 4.f, TEXT("None"));
-                }
-        }, 0.5f, false);
 
 }
 

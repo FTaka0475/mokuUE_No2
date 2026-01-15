@@ -2,6 +2,7 @@
 
 
 #include "FpsPlayerController.h"
+
 #include "GameStartGameState.h"
 
 
@@ -13,9 +14,34 @@ void AFpsPlayerController::Tick(float deltaSeconds)
     if (!GS)
         return;
 
-    const bool bStarted = GS->isGameStarted();
+    const bool bStarted = GS->isGameStarted() && !GS->isGameFinished();
 
     // カウントダウン中は一切動かさない
     SetIgnoreMoveInput(!bStarted);
     SetIgnoreLookInput(!bStarted);
+}
+
+void AFpsPlayerController::BeginPlay()
+{
+    Super::BeginPlay();
+
+    AGameStartGameState* GS = GetWorld()->GetGameState<AGameStartGameState>();
+    if (!GS)
+        return;
+
+    // ===== GameState の通知に Bind =====
+    GS->OnGameFinished.AddDynamic(this, &AFpsPlayerController::HandleGameFinished);
+}
+
+void AFpsPlayerController::HandleGameFinished(int winner)
+{
+    ResultOverlayWidget = CreateWidget<UUserWidget>(
+        this,
+        ResultOverlayWidgetClass
+    );
+
+    ResultOverlayWidget->AddToViewport();
+
+    bShowMouseCursor = true;
+    SetInputMode(FInputModeUIOnly());
 }
