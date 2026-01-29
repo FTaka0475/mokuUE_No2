@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "ResultOverWidget.generated.h"
+#include "ResultOverlayWidget.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class GP3_UEFPS_API UResultOverWidget : public UUserWidget
+class GP3_UEFPS_API UResultOverlayWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
