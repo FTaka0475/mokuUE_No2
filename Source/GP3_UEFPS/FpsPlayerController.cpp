@@ -4,7 +4,8 @@
 #include "FpsPlayerController.h"
 
 #include "GameStartGameState.h"
-
+#include "Kismet/GameplayStatics.h"
+#include "ResultOverWidget.h"
 
 void AFpsPlayerController::Tick(float deltaSeconds)
 {
@@ -35,13 +36,21 @@ void AFpsPlayerController::BeginPlay()
 
 void AFpsPlayerController::HandleGameFinished(int winner)
 {
-    ResultOverlayWidget = CreateWidget<UUserWidget>(
+    FString str = FString::Printf(TEXT("HandleGameFinished winner - %d"), winner);
+    UKismetSystemLibrary::PrintString(this, str, true, true, FColor::Purple, 8.f, TEXT("None"));
+    ResultOverlayWidget = CreateWidget<UResultOverWidget>(
         this,
         ResultOverlayWidgetClass
     );
 
-    ResultOverlayWidget->AddToViewport();
+    if (ResultOverlayWidget != nullptr)
+    {
+        ResultOverlayWidget->AddToViewport();
 
-    bShowMouseCursor = true;
-    SetInputMode(FInputModeUIOnly());
+        bShowMouseCursor = true;
+        SetInputMode(FInputModeUIOnly());
+
+        FString name = FString::Printf(TEXT("%d"), winner);
+        ResultOverlayWidget->SetWinner(name);
+    }
 }
