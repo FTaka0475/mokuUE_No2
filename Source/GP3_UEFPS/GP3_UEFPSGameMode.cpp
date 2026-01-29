@@ -21,6 +21,8 @@ AGP3_UEFPSGameMode::AGP3_UEFPSGameMode()
 		PlayerControllerClass = PCClass.Class;
 	}
 
+
+
 }
 
 void AGP3_UEFPSGameMode::PostLogin(APlayerController* NewPlayer)
